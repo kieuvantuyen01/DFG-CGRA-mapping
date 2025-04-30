@@ -1,0 +1,5 @@
+dfg_file,method,partitions,time,success,cycles
+f.txt,Regular,N/A,99.93539905548096,True,78
+f.txt,Hierarchical,2,57.21255016326904,False,78
+f.txt,Hierarchical,3,44.68216323852539,False,78
+f.txt,Hierarchical,4,0.32856130599975586,False,78

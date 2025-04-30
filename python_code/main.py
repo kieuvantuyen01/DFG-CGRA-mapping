@@ -10,6 +10,12 @@ import dfg
 import maxsat
 import time
 import copy
+try:
+    from hierarchical_mapping import solve_mapping_hierarchical
+    hierarchical_available = True
+except ImportError:
+    hierarchical_available = False
+    print("Warning: Hierarchical mapping module not available. Install NetworkX to use this feature.")
 nvars = 0
 all_clauses = []
 fincrement = True
@@ -22,6 +28,23 @@ finterpret = True
 freduce = True
 fmaxsat = False
 var = {}
+
+try:
+    import config
+except ImportError:
+    # Giá trị mặc định nếu không có tập tin cấu hình
+    config = type('', (), {})
+    config.DEFAULT_NUM_CYCLES = 52
+    config.DEFAULT_NREGS = 2
+    config.DEFAULT_NOPES = 1
+    config.USE_HIERARCHICAL = True
+    config.NUM_PARTITIONS = 2
+    config.FINCREMENT = True
+    config.FINTERPRET = True
+    config.FREDUCE = True
+    config.FMAXSAT = False
+    config.DFG_FILE = "f.txt"
+    config.CGRA_FILE = "e.txt"
 
 def add_clause(clause: list):
     global all_clauses,solver
@@ -306,6 +329,7 @@ def add_capacity_constraints(X: List[List[List[int]]], Y: List[List[List[int]]],
 
 def add_block_constraints(P: List[List[List[int]]],Q: List[int],
                           X: List[List[List[int]]], Y: List[List[List[int]]]):
+
     global all_clauses, nvars
     for k in range(ncycles):
         for j in CGRA.get_pes():
@@ -770,26 +794,37 @@ def increment(X, Y):
 
 def main():
     global fincrement, solver, CGRA, DFG, fincrement, finterpret, freduce, fmaxsat
-    fincrement = True
-    finterpret = False
-    freduce = True
-    fmaxsat = False
+    fincrement = config.FINCREMENT
+    finterpret = config.FINTERPRET
+    freduce = config.FREDUCE
+    fmaxsat = config.FMAXSAT
+    use_hierarchical = config.USE_HIERARCHICAL
+    num_partitions = config.NUM_PARTITIONS
+    
     solver = Glucose4(incr=fincrement)
-    # solver = Cadical103()
+    
     # Read CGRA architecture
     CGRA = graph.Graph()
     CGRA.create_node("mem", "_extmem")
-    CGRA.read("e.txt")
+    CGRA.read(config.CGRA_FILE)
     
-
     # Read DFG
     DFG = dfg.Dfg()
-    DFG.read("f.txt")
-    # DFG.compress()
-    # DFG.insert_xbtree()
+    DFG.read(config.DFG_FILE)
+    
     MAC = True
-    DFG.gen_operands(MAC,True)
-    solve_mapping(num_cycles = 52 , nregs = 2 , nopes= 1)
+    DFG.gen_operands(MAC, True)
+    
+    num_cycles = config.DEFAULT_NUM_CYCLES
+    nregs = config.DEFAULT_NREGS
+    nopes = config.DEFAULT_NOPES
+    
+    if use_hierarchical and hierarchical_available:
+        print("=== Using Hierarchical Mapping Approach ===")
+        solve_mapping_hierarchical(num_cycles, nregs, nopes, num_partitions)
+    else:
+        print("=== Using Regular Mapping Approach ===")
+        solve_mapping(num_cycles, nregs, nopes)
 
 if __name__ == "__main__":
     main()
